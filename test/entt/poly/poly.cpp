@@ -4,7 +4,7 @@
 #include <entt/core/type_traits.hpp>
 #include <entt/poly/poly.hpp>
 
-struct Deduced {
+struct Deduced: entt::type_list<> {
     template<typename Base>
     struct type: Base {
         void incr() { entt::poly_call<0>(*this); }

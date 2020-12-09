@@ -72,28 +72,21 @@ class poly_vtable {
     template<typename Ret, typename... Args>
     static auto vtable_entry(Ret(inspector:: *)(Args...) const) -> Ret(*)(const any &, Args...);
 
-    template<auto... Index>
-    static auto vtable(std::index_sequence<Index...>)
-    -> std::tuple<decltype(vtable_entry(std::get<Index>(poly_impl<Concept, inspector>)))...>;
+    template<typename... Candidate>
+    static auto make_vtable(std::tuple<Candidate...>)
+    -> std::tuple<decltype(vtable_entry(std::declval<Candidate>()))...>;
 
     template<typename... Func>
-    struct defined {
-        static auto vtable()
-        -> std::tuple<decltype(vtable_entry(std::declval<Func inspector:: *>()))...>;
-    };
-
-    struct deduced {
-        static auto vtable()
-        -> decltype(vtable(std::make_index_sequence<std::tuple_size_v<decltype(poly_impl<Concept, inspector>)>>{}));
-    };
-
-    template<typename... Func>
-    static defined<Func...> dispatch_vtable(type_list<Func...>);
-
-    static deduced dispatch_vtable(...);
+    static auto make_vtable(type_list<Func...>)  {
+        if constexpr(sizeof...(Func) == 0) {
+            return make_vtable(poly_impl<Concept, inspector>);
+        } else {
+            return make_vtable(std::tuple<Func inspector:: *...>{});
+        }
+    }
 
     template<typename Type, auto Candidate, typename Ret, typename Any, typename... Args>
-    static void make_vtable_entry(Ret(* &entry)(Any &, Args...)) {
+    static void fill_vtable_entry(Ret(* &entry)(Any &, Args...)) {
         entry = +[](Any &any, Args... args) -> Ret {
             if constexpr(std::is_invocable_r_v<Ret, decltype(Candidate), Args...>) {
                 return std::invoke(Candidate, std::forward<Args>(args)...);
@@ -104,15 +97,15 @@ class poly_vtable {
     }
 
     template<typename Type, auto... Index>
-    [[nodiscard]] static auto make_vtable(std::index_sequence<Index...>) {
+    [[nodiscard]] static auto fill_vtable(std::index_sequence<Index...>) {
         type impl{};
-        (make_vtable_entry<Type, std::get<Index>(poly_impl<Concept, Type>)>(std::get<Index>(impl)), ...);
+        (fill_vtable_entry<Type, std::get<Index>(poly_impl<Concept, Type>)>(std::get<Index>(impl)), ...);
         return impl;
     }
 
 public:
     /*! @brief Virtual table type. */
-    using type = decltype(decltype(dispatch_vtable(Concept{}))::vtable());
+    using type = decltype(make_vtable(Concept{}));
 
     /**
      * @brief Returns a static virtual table for a specific concept and type.
@@ -121,7 +114,7 @@ public:
      */
     template<typename Type>
     [[nodiscard]] static const auto * instance() {
-        static const auto vtable = make_vtable<Type>(std::make_index_sequence<std::tuple_size_v<type>>{});
+        static const auto vtable = fill_vtable<Type>(std::make_index_sequence<std::tuple_size_v<type>>{});
         return &vtable;
     }
 };
@@ -177,7 +170,7 @@ template<auto Member, typename Poly, typename... Args>
 decltype(auto) poly_call(Poly &&self, Args &&... args) {
     return std::forward<Poly>(self).template invoke<Member>(self, std::forward<Args>(args)...);
 }
-    
+
 
 /**
  * @brief Static polymorphism made simple and within everyone's reach.
