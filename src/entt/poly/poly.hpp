@@ -265,7 +265,7 @@ public:
      * @brief Move constructor.
      * @param other The instance to move from.
      */
-    poly(poly &&other)
+    poly(poly &&other) ENTT_NOEXCEPT
         : poly{}
     {
         swap(*this, other);

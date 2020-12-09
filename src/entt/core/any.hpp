@@ -126,7 +126,7 @@ public:
      * @param value An instance of an object to use to initialize the wrapper.
      */
     template<typename Type>
-    any(std::reference_wrapper<Type> value)
+    any(std::reference_wrapper<Type> value) ENTT_NOEXCEPT
         : vtable{&basic_vtable<std::add_lvalue_reference_t<Type>>},
           instance{&value.get()}
     {}
