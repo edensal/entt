@@ -79,9 +79,9 @@ class poly_vtable {
     template<typename... Func>
     static auto make_vtable(type_list<Func...>)  {
         if constexpr(sizeof...(Func) == 0) {
-            return make_vtable(poly_impl<Concept, inspector>);
+            return decltype(make_vtable(poly_impl<Concept, inspector>)){};
         } else {
-            return make_vtable(std::tuple<Func inspector:: *...>{});
+            return decltype(make_vtable(std::tuple<Func inspector:: *...>{})){};
         }
     }
 
