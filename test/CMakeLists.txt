@@ -199,7 +199,8 @@ SETUP_BASIC_TEST(meta_type entt/meta/meta_type.cpp)
 
 # Test poly
 
-SETUP_BASIC_TEST(poly entt/poly/poly.cpp)
+SETUP_BASIC_TEST(poly_deduced entt/poly/poly_deduced.cpp)
+SETUP_BASIC_TEST(poly_defined entt/poly/poly_defined.cpp)
 
 # Test process
 
