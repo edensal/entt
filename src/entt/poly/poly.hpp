@@ -76,6 +76,22 @@ class poly_vtable {
     static auto vtable(std::index_sequence<Index...>)
     -> std::tuple<decltype(vtable_entry(std::get<Index>(poly_impl<Concept, inspector>)))...>;
 
+    template<typename... Func>
+    struct defined {
+        static auto vtable()
+        -> std::tuple<decltype(vtable_entry(std::declval<Func inspector:: *>()))...>;
+    };
+
+    struct deduced {
+        static auto vtable()
+        -> decltype(vtable(std::make_index_sequence<std::tuple_size_v<decltype(poly_impl<Concept, inspector>)>>{}));
+    };
+
+    template<typename... Func>
+    static defined<Func...> dispatch_vtable(type_list<Func...>);
+
+    static deduced dispatch_vtable(...);
+
     template<typename Type, auto Candidate, typename Ret, typename Any, typename... Args>
     static void make_vtable_entry(Ret(* &entry)(Any &, Args...)) {
         entry = +[](Any &any, Args... args) -> Ret {
@@ -96,7 +112,7 @@ class poly_vtable {
 
 public:
     /*! @brief Virtual table type. */
-    using type = decltype(vtable(std::make_index_sequence<std::tuple_size_v<decltype(poly_impl<Concept, inspector>)>>{}));
+    using type = decltype(decltype(dispatch_vtable(Concept{}))::vtable());
 
     /**
      * @brief Returns a static virtual table for a specific concept and type.
