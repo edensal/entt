@@ -121,14 +121,6 @@ public:
 
 
 /**
- * @brief Helper type.
- * @tparam Concept Concept descriptor.
- */
-template<typename Concept>
-using poly_vtable_t = typename poly_vtable<Concept>::type;
-
-
-/**
  * @brief Poly base class used to inject functionalities into concepts.
  * @tparam Poly The outermost poly class.
  */
@@ -179,34 +171,9 @@ decltype(auto) poly_call(Poly &&self, Args &&... args) {
  * cumbersome to obtain.<br/>
  * This class aims to make it simple and easy to use.
  *
- * Below is a minimal example of use:
- *
- * ```cpp
- * template<typename Base>
- * struct Drawable: Base {
- *     void draw() { entt::poly_call<0>(*this); }
- * };
- *
- * template<typename Type>
- * inline constexpr auto entt::poly_impl<Drawable, Type> = entt::value_list<&Type::draw>{};
- *
- * using drawable = entt::poly<Drawable>;
- *
- * struct circle { void draw() {} };
- * struct square { void draw() {} };
- *
- * int main() {
- *     drawable d{circle{}};
- *     d.draw();
- *
- *     d = square{};
- *     d.draw();
- * }
- * ```
- *
- * The `poly` class template also supports aliasing for unmanaged objects.
- * Moreover, thanks to small buffer optimization, it limits the number of
- * allocations to a minimum where possible.
+ * @note
+ * Both deduced and defined static virtual tables are supported.<br/>
+ * Moreover, the `poly` class template also works with unmanaged objects.
  *
  * @tparam Concept Concept descriptor.
  */
@@ -215,7 +182,10 @@ class poly: private Concept::template type<poly_base<poly<Concept>>> {
     /*! @brief A poly base is allowed to snoop into a poly object. */
     friend struct poly_base<poly<Concept>>;
 
+    using vtable_type = typename poly_vtable<Concept>::type;
+
 public:
+    /*! @brief Concept interface type. */
     using interface = typename Concept::template type<poly_base<poly<Concept>>>;
 
     /*! @brief Default constructor. */
@@ -347,17 +317,22 @@ public:
         return ref;
     }
 
+    /**
+     * @brief Returns a pointer to the underlying concept.
+     * @return A pointer to the underlying concept.
+     */
     interface * operator->() ENTT_NOEXCEPT {
         return this;
     }
 
+    /*! @copydoc operator-> */
     const interface * operator->() const ENTT_NOEXCEPT {
         return this;
     }
 
 private:
     any storage;
-    const poly_vtable_t<Concept> *vtable;
+    const vtable_type *vtable;
 };
 
 
