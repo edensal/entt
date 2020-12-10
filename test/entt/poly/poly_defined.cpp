@@ -74,7 +74,7 @@ TEST(PolyDefined, Functionalities) {
     ASSERT_TRUE(empty);
     ASSERT_EQ(empty.get(), 3);
 
-    entt::poly<Defined> ref = in_place.ref();
+    entt::poly<Defined> ref = as_ref(in_place);
 
     ASSERT_TRUE(ref);
     ASSERT_NE(ref.data(), nullptr);

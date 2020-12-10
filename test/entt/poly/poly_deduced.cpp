@@ -68,7 +68,7 @@ TEST(PolyDeduced, Functionalities) {
     ASSERT_TRUE(empty);
     ASSERT_EQ(empty.get(), 3);
 
-    entt::poly<Deduced> ref = in_place.ref();
+    entt::poly<Deduced> ref = as_ref(in_place);
 
     ASSERT_TRUE(ref);
     ASSERT_NE(ref.data(), nullptr);

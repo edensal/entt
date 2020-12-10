@@ -271,6 +271,8 @@ public:
         swap(*this, other);
     }
 
+    // TODO as ref
+
     /**
      * @brief Assignment operator.
      * @param other The instance to assign from.
@@ -315,17 +317,6 @@ public:
     }
 
     /**
-     * @brief Aliasing constructor.
-     * @return A poly that shares a reference to an unmanaged object.
-     */
-    [[nodiscard]] poly ref() const ENTT_NOEXCEPT {
-        poly other{};
-        other.storage = storage.ref();
-        other.vtable = vtable;
-        return other;
-    }
-
-    /**
      * @brief Returns false if a poly is empty, true otherwise.
      * @return False if the poly is empty, true otherwise.
      */
@@ -342,6 +333,18 @@ public:
         using std::swap;
         swap(lhs.storage, rhs.storage);
         swap(lhs.vtable, rhs.vtable);
+    }
+
+    /**
+     * @brief Aliasing constructor.
+     * @param other A reference to an object that isn't necessarily initialized.
+     * @return A poly that shares a reference to an unmanaged object.
+     */
+    [[nodiscard]] friend poly as_ref(const poly &other) ENTT_NOEXCEPT {
+        poly ref;
+        ref.storage = as_ref(other.storage);
+        ref.vtable = other.vtable;
+        return ref;
     }
 
 private:
