@@ -211,11 +211,13 @@ decltype(auto) poly_call(Poly &&self, Args &&... args) {
  * @tparam Concept Concept descriptor.
  */
 template<typename Concept>
-class poly: public Concept::template type<poly_base<poly<Concept>>> {
+class poly: private Concept::template type<poly_base<poly<Concept>>> {
     /*! @brief A poly base is allowed to snoop into a poly object. */
     friend struct poly_base<poly<Concept>>;
 
 public:
+    using interface = typename Concept::template type<poly_base<poly<Concept>>>;
+
     /*! @brief Default constructor. */
     poly() ENTT_NOEXCEPT
         : storage{},
@@ -270,8 +272,6 @@ public:
     {
         swap(*this, other);
     }
-
-    // TODO as ref
 
     /**
      * @brief Assignment operator.
@@ -345,6 +345,14 @@ public:
         ref.storage = as_ref(other.storage);
         ref.vtable = other.vtable;
         return ref;
+    }
+
+    interface * operator->() ENTT_NOEXCEPT {
+        return this;
+    }
+
+    const interface * operator->() const ENTT_NOEXCEPT {
+        return this;
     }
 
 private:

@@ -67,12 +67,12 @@ TEST(PolyDefined, Functionalities) {
     ASSERT_NE(empty.data(), nullptr);
     ASSERT_NE(std::as_const(empty).data(), nullptr);
     ASSERT_EQ(empty.type(), entt::type_id<impl>());
-    ASSERT_EQ(empty.get(), 0);
+    ASSERT_EQ(empty->get(), 0);
 
     empty.template emplace<impl>(3);
 
     ASSERT_TRUE(empty);
-    ASSERT_EQ(empty.get(), 3);
+    ASSERT_EQ(empty->get(), 3);
 
     entt::poly<Defined> ref = as_ref(in_place);
 
@@ -81,7 +81,7 @@ TEST(PolyDefined, Functionalities) {
     ASSERT_EQ(ref.data(), in_place.data());
     ASSERT_EQ(std::as_const(ref).data(), std::as_const(in_place).data());
     ASSERT_EQ(ref.type(), entt::type_id<impl>());
-    ASSERT_EQ(ref.get(), 3);
+    ASSERT_EQ(ref->get(), 3);
 
     entt::poly<Defined> null{};
     std::swap(empty, null);
@@ -91,13 +91,13 @@ TEST(PolyDefined, Functionalities) {
     entt::poly<Defined> copy = in_place;
 
     ASSERT_TRUE(copy);
-    ASSERT_EQ(copy.get(), 3);
+    ASSERT_EQ(copy->get(), 3);
 
     entt::poly<Defined> move = std::move(copy);
 
     ASSERT_TRUE(move);
     ASSERT_FALSE(copy);
-    ASSERT_EQ(move.get(), 3);
+    ASSERT_EQ(move->get(), 3);
 }
 
 TEST(PolyDefined, Owned) {
@@ -108,20 +108,20 @@ TEST(PolyDefined, Owned) {
     ASSERT_NE(poly.data(), nullptr);
     ASSERT_NE(std::as_const(poly).data(), nullptr);
     ASSERT_EQ(ptr->value, 0);
-    ASSERT_EQ(poly.get(), 0);
+    ASSERT_EQ(poly->get(), 0);
 
-    poly.set(1);
-    poly.incr();
+    poly->set(1);
+    poly->incr();
 
     ASSERT_EQ(ptr->value, 2);
-    ASSERT_EQ(poly.get(), 2);
-    ASSERT_EQ(poly.mul(3), 6);
+    ASSERT_EQ(poly->get(), 2);
+    ASSERT_EQ(poly->mul(3), 6);
 
-    poly.decr();
+    poly->decr();
 
     ASSERT_EQ(ptr->value, 1);
-    ASSERT_EQ(poly.get(), 1);
-    ASSERT_EQ(poly.mul(3), 3);
+    ASSERT_EQ(poly->get(), 1);
+    ASSERT_EQ(poly->mul(3), 3);
 }
 
 TEST(PolyDefined, Alias) {
@@ -132,18 +132,18 @@ TEST(PolyDefined, Alias) {
     ASSERT_NE(poly.data(), nullptr);
     ASSERT_NE(std::as_const(poly).data(), nullptr);
     ASSERT_EQ(instance.value, 0);
-    ASSERT_EQ(poly.get(), 0);
+    ASSERT_EQ(poly->get(), 0);
 
-    poly.set(1);
-    poly.incr();
+    poly->set(1);
+    poly->incr();
 
     ASSERT_EQ(instance.value, 2);
-    ASSERT_EQ(poly.get(), 2);
-    ASSERT_EQ(poly.mul(3), 6);
+    ASSERT_EQ(poly->get(), 2);
+    ASSERT_EQ(poly->mul(3), 6);
 
-    poly.decr();
+    poly->decr();
 
     ASSERT_EQ(instance.value, 1);
-    ASSERT_EQ(poly.get(), 1);
-    ASSERT_EQ(poly.mul(3), 3);
+    ASSERT_EQ(poly->get(), 1);
+    ASSERT_EQ(poly->mul(3), 3);
 }
