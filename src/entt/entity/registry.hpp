@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <tuple>
@@ -18,6 +19,7 @@
 #include "entity.hpp"
 #include "fwd.hpp"
 #include "group.hpp"
+#include "poly_storage.hpp"
 #include "runtime_view.hpp"
 #include "sparse_set.hpp"
 #include "storage.hpp"
@@ -41,14 +43,14 @@ namespace entt {
 template<typename Entity>
 class basic_registry {
     using traits_type = entt_traits<Entity>;
+    using poly_storage_type = typename poly_storage_traits<Entity>::storage_type;
 
     template<typename Component>
     using storage_type = constness_as_t<typename storage_traits<Entity, std::remove_const_t<Component>>::storage_type, Component>;
 
     struct pool_data {
-        type_info info{};
+        poly_storage_type poly;
         std::unique_ptr<basic_sparse_set<Entity>> pool{};
-        void(* remove)(basic_sparse_set<Entity> &, basic_registry &, const Entity *, const Entity *){};
     };
 
     template<typename...>
@@ -115,11 +117,8 @@ class basic_registry {
         }
 
         if(auto &&pdata = pools[index]; !pdata.pool) {
-            pdata.info = type_id<Component>();
             pdata.pool.reset(new storage_type<Component>());
-            pdata.remove = +[](basic_sparse_set<Entity> &cpool, basic_registry &owner, const Entity *first, const Entity *last) {
-                static_cast<storage_type<Component> &>(cpool).remove(owner, first, last);
-            };
+            pdata.poly = std::ref(*static_cast<storage_type<Component> *>(pdata.pool.get()));
         }
 
         return static_cast<storage_type<Component> *>(pools[index].pool.get());
@@ -765,7 +764,7 @@ public:
 
         for(auto pos = pools.size(); pos; --pos) {
             if(auto &pdata = pools[pos-1]; pdata.pool && pdata.pool->contains(entity)) {
-                pdata.remove(*pdata.pool, *this, std::begin(wrap), std::end(wrap));
+                pdata.poly->remove(*this, wrap, 1u);
             }
         }
     }
@@ -912,8 +911,8 @@ public:
     void clear() {
         if constexpr(sizeof...(Component) == 0) {
             for(auto pos = pools.size(); pos; --pos) {
-                if(const auto &pdata = pools[pos-1]; pdata.pool) {
-                    pdata.remove(*pdata.pool, *this, pdata.pool->data(), pdata.pool->data() + pdata.pool->size());
+                if(auto &pdata = pools[pos-1]; pdata.pool) {
+                    pdata.poly->remove(*this, pdata.pool->data(), pdata.pool->size());
                 }
             }
 
@@ -1149,12 +1148,12 @@ public:
         std::vector<const basic_sparse_set<Entity> *> filter(std::distance(from, to));
 
         std::transform(first, last, component.begin(), [this](const auto ctype) {
-            const auto it = std::find_if(pools.cbegin(), pools.cend(), [ctype](auto &&pdata) { return pdata.pool && pdata.info.hash() == ctype; });
+            const auto it = std::find_if(pools.cbegin(), pools.cend(), [ctype](auto &&pdata) { return pdata.poly && pdata.poly->value_type().hash() == ctype; });
             return it == pools.cend() ? nullptr : it->pool.get();
         });
 
         std::transform(from, to, filter.begin(), [this](const auto ctype) {
-            const auto it = std::find_if(pools.cbegin(), pools.cend(), [ctype](auto &&pdata) { return pdata.pool && pdata.info.hash() == ctype; });
+            const auto it = std::find_if(pools.cbegin(), pools.cend(), [ctype](auto &&pdata) { return pdata.poly && pdata.poly->value_type().hash() == ctype; });
             return it == pools.cend() ? nullptr : it->pool.get();
         });
 
@@ -1465,7 +1464,7 @@ public:
     void visit(entity_type entity, Func func) const {
         for(auto pos = pools.size(); pos; --pos) {
             if(const auto &pdata = pools[pos-1]; pdata.pool && pdata.pool->contains(entity)) {
-                func(pdata.info);
+                func(pdata.poly->value_type());
             }
         }
     }
@@ -1494,7 +1493,7 @@ public:
     void visit(Func func) const {
         for(auto pos = pools.size(); pos; --pos) {
             if(const auto &pdata = pools[pos-1]; pdata.pool) {
-                func(pdata.info);
+                func(pdata.poly->value_type());
             }
         }
     }
