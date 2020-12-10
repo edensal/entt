@@ -85,13 +85,15 @@ class poly_vtable {
         }
     }
 
-    template<typename Type, auto Candidate, typename Ret, typename Any, typename... Args>
+    template<typename Type, auto Index, typename Ret, typename Any, typename... Args>
     static void fill_vtable_entry(Ret(* &entry)(Any &, Args...)) {
         entry = +[](Any &any, Args... args) -> Ret {
-            if constexpr(std::is_invocable_r_v<Ret, decltype(Candidate), Args...>) {
-                return std::invoke(Candidate, std::forward<Args>(args)...);
+            constexpr auto candidate = std::get<Index>(poly_impl<Concept, Type>);
+
+            if constexpr(std::is_invocable_r_v<Ret, decltype(candidate), Args...>) {
+                return std::invoke(candidate, std::forward<Args>(args)...);
             } else {
-                return std::invoke(Candidate, any_cast<constness_as_t<Type, Any> &>(any), std::forward<Args>(args)...);
+                return std::invoke(candidate, any_cast<constness_as_t<Type, Any> &>(any), std::forward<Args>(args)...);
             }
         };
     }
@@ -99,7 +101,7 @@ class poly_vtable {
     template<typename Type, auto... Index>
     [[nodiscard]] static auto fill_vtable(std::index_sequence<Index...>) {
         type impl{};
-        (fill_vtable_entry<Type, std::get<Index>(poly_impl<Concept, Type>)>(std::get<Index>(impl)), ...);
+        (fill_vtable_entry<Type, Index>(std::get<Index>(impl)), ...);
         return impl;
     }
 
