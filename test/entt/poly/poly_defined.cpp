@@ -19,17 +19,22 @@ struct Defined: entt::type_list<
         void decr() { entt::poly_call<3>(*this); }
         int mul(int v) { return entt::poly_call<4>(*this, v); }
     };
-};
 
-template<typename Type>
-inline constexpr auto entt::poly_impl<Defined, Type> =
-    std::make_tuple(
+    template<typename Type>
+    struct members {
+        static void decr(Type &self) { self.decrement(); }
+        static double mul(Type &self, double v) { return self.multiply(v); }
+    };
+
+    template<typename Type>
+    using impl = entt::value_list<
         &Type::incr,
         &Type::set,
         &Type::get,
-        +[](Type &self) { self.decrement(); },
-        +[](Type &self, double v) -> double { return self.multiply(v); }
-    );
+        &members<Type>::decr,
+        &members<Type>::mul
+    >;
+};
 
 struct impl {
     void incr() { ++value; }

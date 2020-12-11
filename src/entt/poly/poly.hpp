@@ -15,15 +15,6 @@
 namespace entt {
 
 
-/**
- * @brief Inline variable designed to contain the definition of a concept.
- * @tparam Concept A concept class template.
- * @tparam Type The type for which the definition is provided.
- */
-template<typename Concept, typename Type>
-inline constexpr std::tuple poly_impl{};
-
-
 /*! @brief Inspector class used to infer the type of the virtual table. */
 struct poly_inspector {
     /**
@@ -72,34 +63,34 @@ class poly_vtable {
     template<typename Ret, typename... Args>
     static auto vtable_entry(Ret(inspector:: *)(Args...) const) -> Ret(*)(const any &, Args...);
 
-    template<typename... Candidate>
-    static auto make_vtable(std::tuple<Candidate...>)
-    -> std::tuple<decltype(vtable_entry(std::declval<Candidate>()))...>;
+    template<auto... Candidate>
+    static auto make_vtable(value_list<Candidate...>)
+    -> std::tuple<decltype(vtable_entry(Candidate))...>;
 
     template<typename... Func>
     static auto make_vtable(type_list<Func...>)  {
         if constexpr(sizeof...(Func) == 0) {
-            return decltype(make_vtable(poly_impl<Concept, inspector>)){};
+            return decltype(make_vtable(typename Concept::template impl<inspector>{})){};
         } else {
-            return decltype(make_vtable(std::tuple<Func inspector:: *...>{})){};
+            return std::make_tuple(vtable_entry(type_identity_t<Func inspector:: *>{})...);
         }
     }
 
-    template<typename Type, auto Index, typename Ret, typename Any, typename... Args>
+    template<typename Type, auto Candidate, typename Ret, typename Any, typename... Args>
     static void fill_vtable_entry(Ret(* &entry)(Any &, Args...)) {
         entry = +[](Any &any, Args... args) -> Ret {
-            if constexpr(std::is_invocable_r_v<Ret, std::tuple_element_t<Index, decltype(poly_impl<Concept, Type>)>, Args...>) {
-                return std::invoke(std::get<Index>(poly_impl<Concept, Type>), std::forward<Args>(args)...);
+            if constexpr(std::is_invocable_r_v<Ret, decltype(Candidate), Args...>) {
+                return std::invoke(Candidate, std::forward<Args>(args)...);
             } else {
-                return std::invoke(std::get<Index>(poly_impl<Concept, Type>), any_cast<constness_as_t<Type, Any> &>(any), std::forward<Args>(args)...);
+                return std::invoke(Candidate, any_cast<constness_as_t<Type, Any> &>(any), std::forward<Args>(args)...);
             }
         };
     }
 
-    template<typename Type, auto... Index>
-    [[nodiscard]] static auto fill_vtable(std::index_sequence<Index...>) {
+    template<typename Type, auto... Candidate, auto... Index>
+    [[nodiscard]] static auto fill_vtable(value_list<Candidate...>, std::index_sequence<Index...>) {
         type impl{};
-        (fill_vtable_entry<Type, Index>(std::get<Index>(impl)), ...);
+        (fill_vtable_entry<Type, Candidate>(std::get<Index>(impl)), ...);
         return impl;
     }
 
@@ -114,7 +105,7 @@ public:
      */
     template<typename Type>
     [[nodiscard]] static const auto * instance() {
-        static const auto vtable = fill_vtable<Type>(std::make_index_sequence<std::tuple_size_v<type>>{});
+        static const auto vtable = fill_vtable<Type>(typename Concept::template impl<Type>{}, std::make_index_sequence<std::tuple_size_v<type>>{});
         return &vtable;
     }
 };

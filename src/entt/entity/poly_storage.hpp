@@ -31,17 +31,24 @@ struct Storage: type_list<
             poly_call<1>(*this, owner, entity, length);
         }
     };
-};
 
+    template<typename Type>
+    struct members {
+        static type_info value_type() {
+            return type_id<typename Type::value_type>();
+        }
 
-template<typename Entity, typename Type>
-inline constexpr auto poly_impl<Storage<Entity>, Type> =
-    std::make_tuple(
-        +[]() { return type_id<typename Type::value_type>(); },
-        +[](Type &self, basic_registry<Entity> &owner, const Entity *entity, const std::size_t length) {
+        static void remove(Type &self, basic_registry<Entity> &owner, const Entity *entity, const std::size_t length) {
             self.remove(owner, entity, entity + length);
         }
-    );
+    };
+
+    template<typename Type>
+    using impl = value_list<
+        &members<Type>::value_type,
+        &members<Type>::remove
+    >;
+};
 
 
 template<typename Entity, typename = void>
